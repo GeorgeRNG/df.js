@@ -1,0 +1,11 @@
+{
+  "name": "df.js",
+  "version": "1.0.0",
+  "description": "Code in JavaScript and put it into DiamondFire",
+  "main": "df.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "https://github.com/GeorgeRNG",
+  "license": "ISC"
+}
