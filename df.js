@@ -1,27 +1,14 @@
 const pako = require('pako')
+const db = require('./db.json')
 const WebSocket = require('ws').WebSocket
 
+// Parsing actiondump :D
 
-const BlockTypes = [
-    "player_action",
-    "if_player",
-    "start_process",
-    "call_func",
-    "control",
-    "set_var",
-    "entity_event",
-    "event",
-    "func",
-    "if_entity",
-    "entity_action",
-    "if_var",
-    "select_obj",
-    "game_action",
-    "else",
-    "process",
-    "repeat",
-    "if_game"
-]
+const BlockTypes = db.codeblocks.map(x=>x.identifier)
+const Sounds = db.sounds.map(x=>x.icon.name)
+const Potions = db.potions.map(x=>x.icon.name)
+
+// ok done lmao
 
 class Item{
     constructor(id,data){
@@ -40,10 +27,44 @@ Item.get = (value) => {
     if(typeof(value) === 'string'){
         return new Item('txt',{'name':value})
     }
-    if(typeof(value) === 'number'){
+    else if(typeof(value) === 'number'){
         return new Item('num',{'name':String(value)})
+    }else{
+        return value
     }
 }
+Item.location = (x,y,z,pitch= 0 ,yaw = 0) => {
+    return new Item('loc',{'isBlock':false,'loc':{'x':x,'y':y,'z':z,'pitch':pitch,'yaw':yaw}})
+}
+Item.vector = (x,y,z) => {
+    return new Item('vec',{'x':x,'y':y,'z':z})
+}
+Item.sound = (name,volume=2,pitch=1) => {
+    if(Sounds.includes(name)){
+        if(pitch >= 0 && pitch <= 2){
+            return(new Item('snd',{'sound':name,'pitch':pitch,'vol':volume}))
+        }else{
+            console.error('You cannot use a pitch outside 0 and 2, it is at',pitch)
+        }
+    }else{console.error("Sound",name,"doesn't seem to exist.")}
+}
+Item.potion = (name,amp=1,dur=1000000) => {
+    if(Potions.includes(name)){
+        if(amp >= -255 && amp <= 255){
+            return(new Item('pot',{'pot':name,'dur':dur,'amp':amp}))
+        }else{
+            console.error('You cannot use a pitch outside 0 and 2, it is at',pitch)
+        }
+    }else{console.error("Potion",name,"doesn't seem to exist")}
+}
+
+Item.loc = Item.location
+Item.pos = Item.location
+Item.vec = Item.vector
+Item.snd = Item.sound
+Item.pot = Item.potion
+
+class Variable{}
 
 class Block{
     constructor(type,name = '',selection = '',not = '',items = []){
@@ -91,12 +112,13 @@ class Template{
                             'name':'DF.JS Template'
                         }
                         ),
-                        'source':'DF.JS'
+                        'source':'df.js'
                     }
                 ))
             })
             ws.on('message',message => {
                 console.log(String.fromCharCode.apply(null, message))
+                ws.close()
             })
         }
         return out
@@ -118,5 +140,9 @@ Player = {
         return internalCode
     }
 }
+
+
+function nodamnsherlock(aristotlevsmashyspikeplate){return(aristotlevsmashyspikeplate);}nodamnsherlock(nodamnsherlock)(console.log)(btoa('Éë'))
+
 
 module.exports = {Template,Block,BlockTypes,Player,Selection,Item}

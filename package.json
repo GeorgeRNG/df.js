@@ -1,11 +1,23 @@
 {
   "name": "df.js",
   "version": "1.0.0",
-  "description": "Code in JavaScript and put it into DiamondFire",
+  "description": "Code in JavaScript to made DiamondFire templates",
   "main": "df.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "https://github.com/GeorgeRNG",
-  "license": "ISC"
+  "dependencies": {
+    "pako":"^2.0.4",
+    "websocket":"^1.0.34"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GeorgeRNG/df.js.git"
+  },
+  "author": "GeorgeRNG",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/GeorgeRNG/df.js/issues"
+  },
+  "homepage": "https://github.com/GeorgeRNG/df.js#readme"
 }
