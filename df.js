@@ -111,6 +111,7 @@ class Block{
 class Bracket{
     constructor(open,sticky){
         this.open = open
+        this.sticky = sticky
     }
     json(){
         return {'id':'bracket','direct':this.open?'open':'close','type':this.sticky?'norm':'repeat'}
@@ -166,9 +167,7 @@ class Selection{
 const Player = {
     on(name,call){
         if(PlayerIfs.includes(name)){
-        internalCode = new Template(new Block('event',name))
-        call(new Selection)
-        return internalCode
+            internalCode = new Template(new Block('event',name)) // this variable must be editable by call but I don't want to use a param to pass it in.
             call(new Selection)
             return internalCode
         }else{
