@@ -7,8 +7,28 @@ const WebSocket = require('ws').WebSocket
 const BlockTypes = db.codeblocks.map(x=>x.identifier)
 const Sounds = db.sounds.map(x=>x.icon.name)
 const Potions = db.potions.map(x=>x.icon.name)
+const IDActionList = Object.fromEntries(db.codeblocks.map(x=>[x.identifier,db.actions.filter(y=>y.codeblockName==x.name)]))
+const IDACtionNameList = Object.entries(IDActionList).map(x=>x[1])
+const PlayerIfs = db.actions.filter(x=>x.codeblockName=='IF PLAYER')
 
 // ok done lmao
+
+class Variable{
+    constructor(name,scope='unsaved'){
+        this.name = name;
+        scope = {'local':'local','unsaved':'unsaved','game':'unsaved','saved':'saved','save':'saved'}[scope.toLowerCase()];
+        if(['local','unsaved','saved'].includes(scope)){
+            this.scope = scope
+        }
+        this.json = Item.get(this).json
+    }
+    set(value){
+        var out = new Block('set_var','=','','',[Item.get(this),Item.get(value)])
+        console.log(out.items[0].json)
+        internalCode.Blocks.push(out)
+    }
+}
+const Var = Variable
 
 class Item{
     constructor(id,data){
@@ -24,12 +44,16 @@ class Item{
 }
 
 Item.get = (value) => {
-    if(typeof(value) === 'string'){
+    if(value.constructor.name === 'String'){
         return new Item('txt',{'name':value})
     }
-    else if(typeof(value) === 'number'){
+    else if(value.constructor.name === 'Number'){
         return new Item('num',{'name':String(value)})
-    }else{
+    }
+    else if(value.constructor.name === 'Variable'){
+        return new Item('var',{'name':value.name,'scope':value.scope})
+    }
+    else{
         return value
     }
 }
@@ -64,8 +88,6 @@ Item.vec = Item.vector
 Item.snd = Item.sound
 Item.pot = Item.potion
 
-class Variable{}
-
 class Block{
     constructor(type,name = '',selection = '',not = '',items = []){
         if(!BlockTypes.includes(type)){console.error('No BlockType',type,'\nTypes are:',BlockTypes);}
@@ -81,9 +103,17 @@ class Block{
             data['action'] = this.name
         }
         else{data['data'] = this.name}
-        data['args']['items'] = this.items.map(item => item.json())
+        data['args']['items'] = this.items.map((item,i) => item.json(i))
         console.log(data)
         return data
+    }
+}
+class Bracket{
+    constructor(open,sticky){
+        this.open = open
+    }
+    json(){
+        return {'id':'bracket','direct':this.open?'open':'close','type':this.sticky?'norm':'repeat'}
     }
 }
 
@@ -133,11 +163,25 @@ class Selection{
     }
 }
 
-Player = {
+const Player = {
     on(name,call){
+        if(PlayerIfs.includes(name)){
         internalCode = new Template(new Block('event',name))
         call(new Selection)
         return internalCode
+            call(new Selection)
+            return internalCode
+        }else{
+            console.error('There is no player event with the name',name)
+        }
+    },
+    if(name,inv,call,tags={},not=false){
+        console.log(IDActionList['if_player'].filter(x=>x.name===name)[0])
+        internalCode.Blocks.push(new Block('if_player',name,'',not?'NOT':'',inv))
+        internalCode.Blocks.push(new Bracket(true,false))
+        call()
+        internalCode.Blocks.push(new Bracket(false,false))
+
     }
 }
 
@@ -145,4 +189,4 @@ Player = {
 function nodamnsherlock(aristotlevsmashyspikeplate){return(aristotlevsmashyspikeplate);}nodamnsherlock(nodamnsherlock)(console.log)(btoa('Éë'))
 
 
-module.exports = {Template,Block,BlockTypes,Player,Selection,Item}
+module.exports = {Template,Block,BlockTypes,Player,Selection,Item,Variable,Var,Bracket}
