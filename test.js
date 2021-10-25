@@ -1,9 +1,5 @@
 const { Player, Item, Variable } = require('./df')
 
-Player.on('Join',player => {
-    st = new Variable('bob','local');
-    st.set('hello!')
-    Player.if('IsGrounded',[],() => {
-        player.SendMessage(st)
-    })
+Player.Join(() => {
+    Player.SendMessage('hello!',{'Alignment Mode':'Centered'})
 }).json('GeorgeRNG')

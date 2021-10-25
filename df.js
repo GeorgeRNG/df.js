@@ -13,22 +13,9 @@ const PlayerIfs = db.actions.filter(x=>x.codeblockName=='IF PLAYER')
 
 // ok done lmao
 
-class Variable{
-    constructor(name,scope='unsaved'){
-        this.name = name;
-        scope = {'local':'local','unsaved':'unsaved','game':'unsaved','saved':'saved','save':'saved'}[scope.toLowerCase()];
-        if(['local','unsaved','saved'].includes(scope)){
-            this.scope = scope
-        }
-        this.json = Item.get(this).json
-    }
-    set(value){
-        var out = new Block('set_var','=','','',[Item.get(this),Item.get(value)])
-        console.log(out.items[0].json)
-        internalCode.Blocks.push(out)
-    }
-}
-const Var = Variable
+
+
+// Values
 
 class Item{
     constructor(id,data){
@@ -36,14 +23,23 @@ class Item{
         this.data = data
     }
     json(slot=0){
-        var out = {item:{},slot}
-        out['item']['id'] = this.id
-        out['item']['data'] = this.data
+        var out
+        if(this.id==='bl_tag'){
+            out = {item:{},'slot':this.slot}
+            console.log(this.slot)
+            out['item']['id'] = 'bl_tag' // It'll never change?
+            out['item']['data'] = this.data
+        }
+        else{
+            out = {item:{},'slot':slot}
+            out['item']['id'] = this.id
+            out['item']['data'] = this.data
+        }
         return out
     }
 }
 
-Item.get = (value) => {
+Item.get = (value) => { // turn js values into df items
     if(value.constructor.name === 'String'){
         return new Item('txt',{'name':value})
     }
@@ -57,6 +53,10 @@ Item.get = (value) => {
         return value
     }
 }
+// the following has no js equivelent afaik
+
+
+
 Item.location = (x,y,z,pitch= 0 ,yaw = 0) => {
     return new Item('loc',{'isBlock':false,'loc':{'x':x,'y':y,'z':z,'pitch':pitch,'yaw':yaw}})
 }
@@ -81,14 +81,40 @@ Item.potion = (name,amp=1,dur=1000000) => {
         }
     }else{console.error("Potion",name,"doesn't seem to exist")}
 }
+Item.tag = (name,value,action,block,slot) => {
+    var out = new Item('bl_tag',{'option':value,'tag':name,'action':action,'block':block})
+    out.slot = slot
+    return out
+}
 
+class Variable{
+    constructor(name,scope='unsaved'){
+        this.name = name;
+        scope = {'local':'local','unsaved':'unsaved','game':'unsaved','saved':'saved','save':'saved'}[scope.toLowerCase()];
+        if(['local','unsaved','saved'].includes(scope)){
+            this.scope = scope
+        }
+        this.json = Item.get(this).json
+    }
+    set(value){
+        var out = new Block('set_var','=','','',[Item.get(this),Item.get(value)])
+        console.log(out.items[0].json)
+        internalCode.Blocks.push(out)
+    }
+}
+
+
+// just to make shorter names
 Item.loc = Item.location
 Item.pos = Item.location
 Item.vec = Item.vector
 Item.snd = Item.sound
 Item.pot = Item.potion
 
-class Block{
+const Var = Variable
+// alaises over.
+
+class Block{ // constructor: type,name,selection,not,items
     constructor(type,name = '',selection = '',not = '',items = []){
         if(!BlockTypes.includes(type)){console.error('No BlockType',type,'\nTypes are:',BlockTypes);}
         this.type = type
@@ -117,7 +143,6 @@ class Bracket{
         return {'id':'bracket','direct':this.open?'open':'close','type':this.sticky?'norm':'repeat'}
     }
 }
-
 class Template{
     constructor(FirstBlock){
         this.Blocks = [FirstBlock]
@@ -156,31 +181,23 @@ class Template{
     }
 }
 
-class Selection{
-    SendMessage(message){
-        var block = new Block('player_action','SendMessage')
-        block.items.push(Item.get(message))
-        internalCode.Blocks.push(block)
-    }
-}
+
+// for blocks 'n' stuff
 
 const Player = {
-    on(name,call){
-        if(PlayerIfs.includes(name)){
-            internalCode = new Template(new Block('event',name)) // this variable must be editable by call but I don't want to use a param to pass it in.
-            call(new Selection)
-            return internalCode
-        }else{
-            console.error('There is no player event with the name',name)
-        }
-    },
-    if(name,inv,call,tags={},not=false){
-        console.log(IDActionList['if_player'].filter(x=>x.name===name)[0])
-        internalCode.Blocks.push(new Block('if_player',name,'',not?'NOT':'',inv))
-        internalCode.Blocks.push(new Bracket(true,false))
+    Join(call){
+        internalCode = new Template(new Block('event','Join')) // this variable must be editable by call but I don't want to use a param to pass it in.
         call()
-        internalCode.Blocks.push(new Bracket(false,false))
-
+        return internalCode
+    },
+    SendMessage(text,args={},selection=''){
+        var tags = Object.fromEntries(IDActionList['player_action'].filter(x=>x.name==='SendMessage')[0].tags.map(x=>[x.name,x]))
+        var inv = [Item.get(text)];
+        Object.keys(tags).forEach(tag => {
+            console.log()
+            inv.push(Item.tag(tag,args[tag]!==undefined?args[tag]:tags[tag].defaultOption,'SendMessage','player_action',tags[tag].slot))
+        })
+        internalCode.Blocks.push(new Block('player_action','SendMessage',selection,'',inv))
     }
 }
 
@@ -188,4 +205,4 @@ const Player = {
 function nodamnsherlock(aristotlevsmashyspikeplate){return(aristotlevsmashyspikeplate);}nodamnsherlock(nodamnsherlock)(console.log)(btoa('Éë'))
 
 
-module.exports = {Template,Block,BlockTypes,Player,Selection,Item,Variable,Var,Bracket}
+module.exports = {Template,Block,BlockTypes,Player,Item,Variable,Var,Bracket}
